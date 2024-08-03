@@ -48,6 +48,7 @@
       <button id="kalimbaButton">Kalimba</button>
       <button id="pentatonicButton">Pentatonica</button>
       <button id="hangDrumButton">Hang Drum</button>
+      <button id="debugButton">Toggle Debug</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -59,100 +60,63 @@
         targetFPS: 30,
         scales: {
           chromatic: [
-            "C3",
-            "C#3",
-            "D3",
-            "D#3",
-            "E3",
-            "F3",
-            "F#3",
-            "G3",
-            "G#3",
-            "A3",
-            "A#3",
-            "B3",
-            "C4",
-            "C#4",
-            "D4",
-            "D#4",
-            "E4",
-            "F4",
-            "F#4",
-            "G4",
-            "G#4",
-            "A4",
-            "A#4",
-            "B4",
+            "C",
+            "C#",
+            "D",
+            "D#",
+            "E",
+            "F",
+            "F#",
+            "G",
+            "G#",
+            "A",
+            "A#",
+            "B",
           ],
-          kalimba: [
-            "C3",
-            "D3",
-            "E3",
-            "G3",
-            "A3",
-            "C4",
-            "D4",
-            "E4",
-            "G4",
-            "A4",
-            "C5",
-            "D5",
-            "E5",
-            "G5",
-            "A5",
-          ],
-          pentatonic: [
-            "C3",
-            "D3",
-            "E3",
-            "G3",
-            "A3",
-            "C4",
-            "D4",
-            "E4",
-            "G4",
-            "A4",
-            "C5",
-            "D5",
-            "E5",
-            "G5",
-            "A5",
-          ],
-          hangDrum: [
-            "D3",
-            "A3",
-            "C4",
-            "D4",
-            "F4",
-            "G4",
-            "A4",
-            "C5",
-            "D5",
-            "F5",
-            "G5",
-            "A5",
-            "C6",
-            "D6",
-            "F6",
-          ],
+          kalimba: ["C", "D", "E", "G", "A"],
+          pentatonic: ["C", "D", "E", "G", "A"],
+          hangDrum: ["D", "A", "C", "D", "F", "G", "A"],
         },
         currentScale: "chromatic",
         distributedNotes: [],
+        baseOctave: 3,
+        numOctaves: 3,
+        showDebug: false,
       };
+
+      // Funzione per generare note con ottave
+      function generateNotesWithOctaves(scale, baseOctave, numOctaves) {
+        let notes = [];
+        for (
+          let octave = baseOctave;
+          octave < baseOctave + numOctaves;
+          octave++
+        ) {
+          notes = notes.concat(scale.map((note) => `${note}${octave}`));
+        }
+        return notes;
+      }
 
       // Funzione per distribuire le note
       function distributeNotes() {
         const scale = Params.scales[Params.currentScale];
-        Params.distributedNotes = [];
-        const notesPerRay = Math.floor(Params.numRays / scale.length);
-        let remainingRays = Params.numRays % scale.length;
+        let notesWithOctaves = generateNotesWithOctaves(
+          scale,
+          Params.baseOctave,
+          Params.numOctaves
+        );
 
-        for (let i = 0; i < scale.length; i++) {
-          let repeatCount = notesPerRay + (remainingRays > 0 ? 1 : 0);
-          for (let j = 0; j < repeatCount; j++) {
-            Params.distributedNotes.push(scale[i]);
+        Params.distributedNotes = [];
+        const totalNotes = notesWithOctaves.length;
+        const notesPerSlot = Math.floor(Params.numRays / totalNotes);
+        let remainingSlots = Params.numRays % totalNotes;
+
+        for (let i = 0; i < totalNotes; i++) {
+          let repetitions = notesPerSlot + (remainingSlots > 0 ? 1 : 0);
+          for (let j = 0; j < repetitions; j++) {
+            Params.distributedNotes.push(i + 1); // Usiamo numeri da 1 a totalNotes per il debug
           }
-          if (remainingRays > 0) remainingRays--;
+          if (remainingSlots > 0) remainingSlots--;
         }
       }
 
@@ -200,6 +164,22 @@
           this.ctx.stroke();
         },
 
+        drawDebugNumbers() {
+          if (!Params.showDebug) return;
+
+          this.ctx.font = "12px Arial";
+          this.ctx.fillStyle = "white";
+          this.ctx.textAlign = "center";
+          this.ctx.textBaseline = "middle";
+
+          for (let i = 0; i < Params.numRays; i++) {
+            const angle = (i / Params.numRays) * Math.PI * 2;
+            const x = this.centerX + Math.cos(angle) * (Params.radius + 15);
+            const y = this.centerY + Math.sin(angle) * (Params.radius + 15);
+            this.ctx.fillText(Params.distributedNotes[i].toString(), x, y);
+          }
+        },
+
         clear() {
           this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         },
@@ -235,9 +215,15 @@
           this.synth.chain(this.reverb, this.compressor);
         },
 
-        playNote(index) {
+        playNote(noteNumber) {
           if (!this.synth) return;
-          const note = Params.distributedNotes[index];
+          const scale = Params.scales[Params.currentScale];
+          const notesWithOctaves = generateNotesWithOctaves(
+            scale,
+            Params.baseOctave,
+            Params.numOctaves
+          );
+          const note = notesWithOctaves[noteNumber % notesWithOctaves.length];
           this.synth.triggerAttackRelease(note, "16n", undefined, 0.2);
         },
       };
@@ -258,7 +244,7 @@
             this.direction *= -1;
             if (this.distance > Params.radius) {
               this.borderGlow = 1;
-              Audio.playNote(this.index);
+              Audio.playNote(Params.distributedNotes[this.index] - 1);
             }
           }
           this.borderGlow *= 0.9;
@@ -325,6 +311,11 @@
           document
             .getElementById("hangDrumButton")
             .addEventListener("click", () => this.changeScale("hangDrum"));
+          document
+            .getElementById("debugButton")
+            .addEventListener("click", () => {
+              Params.showDebug = !Params.showDebug;
+            });
         },
 
         changeScale(scaleName) {
@@ -344,6 +335,7 @@
           Graphics.clear();
           Graphics.drawCircumference();
           Graphics.drawRays();
+          Graphics.drawDebugNumbers();
 
           this.circles.forEach((circle) => {
             circle.update();
