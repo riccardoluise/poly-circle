@@ -23,8 +23,9 @@
         top: 20px;
         left: 20px;
         display: flex;
-        flex-direction: column;
+        flex-wrap: wrap;
         gap: 10px;
+        max-width: 80vw;
       }
       button {
         padding: 10px 20px;
@@ -44,10 +45,6 @@
     <canvas id="myCanvas"></canvas>
     <div id="controls">
       <button id="startButton">Avvia Audio</button>
-      <button id="chromaticButton">Scala Cromatica</button>
-      <button id="kalimbaButton">Kalimba</button>
-      <button id="pentatonicButton">Pentatonica</button>
-      <button id="hangDrumButton">Hang Drum</button>
       <button id="debugButton">Toggle Debug</button>
     </div>
 
@@ -59,23 +56,28 @@
         radius: 0,
         targetFPS: 30,
         scales: {
-          chromatic: [
-            "C",
-            "C#",
-            "D",
-            "D#",
-            "E",
-            "F",
-            "F#",
-            "G",
-            "G#",
-            "A",
-            "A#",
-            "B",
-          ],
+          chromatic: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
           kalimba: ["C", "D", "E", "G", "A"],
           pentatonic: ["C", "D", "E", "G", "A"],
           hangDrum: ["D", "A", "C", "D", "F", "G", "A"],
+          kurd: ["D", "F", "G", "A", "A#", "C", "D"],
+          amara: ["D", "E", "F", "G", "A", "C", "D"],
+          magicVoyage: ["D", "F", "G", "A", "C"],
+          pigmy: ["D", "F", "G", "A", "C"],
+          lowPygmy: ["D", "E", "F", "A", "C"],
+          laSirena: ["D", "E", "F", "G", "A", "B", "D"],
+          hijaz: ["D", "D#", "F#", "G", "A", "A#", "C#"],
+          equinox: ["D", "F", "G", "A", "B", "C"],
+          aeolian: ["D", "E", "F", "G", "A", "A#", "C"],
+          akebono: ["D", "D#", "G", "A", "A#"],
+          mystic: ["D", "E", "F", "G", "A", "A#", "C"],
+          romanianHijaz: ["D", "D#", "F#", "G", "A", "B", "C"],
+          blues: ["D", "F", "G", "G#", "A", "C"],
+          pentatonicMajor: ["D", "E", "F#", "A", "B"],
+          jibuk: ["D", "E", "F#", "G", "A", "B", "C"],
+          myxolidian: ["D", "E", "F#", "G", "A", "B", "C"],
+          sabye: ["D", "E", "F#", "G#", "A", "B", "C#"],
+          yshasavita: ["D", "E", "F#", "G", "A", "B"]
         },
         currentScale: "chromatic",
         distributedNotes: [],
@@ -305,22 +307,19 @@
             });
 
           document
-            .getElementById("chromaticButton")
-            .addEventListener("click", () => this.changeScale("chromatic"));
-          document
-            .getElementById("kalimbaButton")
-            .addEventListener("click", () => this.changeScale("kalimba"));
-          document
-            .getElementById("pentatonicButton")
-            .addEventListener("click", () => this.changeScale("pentatonic"));
-          document
-            .getElementById("hangDrumButton")
-            .addEventListener("click", () => this.changeScale("hangDrum"));
-          document
             .getElementById("debugButton")
             .addEventListener("click", () => {
               Params.showDebug = !Params.showDebug;
             });
+
+          // Generare dinamicamente i pulsanti per le scale
+          const controlsDiv = document.getElementById("controls");
+          for (let scale in Params.scales) {
+            const button = document.createElement("button");
+            button.textContent = scale.charAt(0).toUpperCase() + scale.slice(1);
+            button.addEventListener("click", () => this.changeScale(scale));
+            controlsDiv.appendChild(button);
+          }
         },
 
         changeScale(scaleName) {
