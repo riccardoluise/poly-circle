@@ -73,7 +73,20 @@
         radius: 0,
         targetFPS: 30,
         scales: {
-          chromatic: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+          chromatic: [
+            "C",
+            "C#",
+            "D",
+            "D#",
+            "E",
+            "F",
+            "F#",
+            "G",
+            "G#",
+            "A",
+            "A#",
+            "B",
+          ],
           kalimba: ["C", "D", "E", "G", "A"],
           pentatonic: ["C", "D", "E", "G", "A"],
           hangDrum: ["D", "A", "C", "D", "F", "G", "A"],
@@ -94,25 +107,29 @@
           jibuk: ["D", "E", "F#", "G", "A", "B", "C"],
           myxolidian: ["D", "E", "F#", "G", "A", "B", "C"],
           sabye: ["D", "E", "F#", "G#", "A", "B", "C#"],
-          yshasavita: ["D", "E", "F#", "G", "A", "B"]
+          yshasavita: ["D", "E", "F#", "G", "A", "B"],
         },
         currentScale: "chromatic",
         distributedNotes: [],
         baseOctave: 3,
         numOctaves: 3,
         showDebug: false,
+        baseSpeed: 1,
+        speedIncrement: 0.002,
       };
 
-      // Funzione per generare note con ottave
       function generateNotesWithOctaves(scale, baseOctave, numOctaves) {
         let notes = [];
-        for (let octave = baseOctave; octave < baseOctave + numOctaves; octave++) {
+        for (
+          let octave = baseOctave;
+          octave < baseOctave + numOctaves;
+          octave++
+        ) {
           notes = notes.concat(scale.map((note) => `${note}${octave}`));
         }
         return notes;
       }
 
-      // Funzione per distribuire le note
       function distributeNotes() {
         const scale = Params.scales[Params.currentScale];
         let notesWithOctaves = generateNotesWithOctaves(
@@ -134,11 +151,9 @@
           if (remainingSlots > 0) remainingSlots--;
         }
 
-        // Invertiamo l'array per ottenere la distribuzione antioraria
         Params.distributedNotes.reverse();
       }
 
-      // Modulo grafico
       const Graphics = {
         canvas: null,
         ctx: null,
@@ -149,7 +164,7 @@
           this.canvas = document.getElementById(canvasId);
           this.ctx = this.canvas.getContext("2d");
           this.resizeCanvas();
-          window.addEventListener('resize', () => this.resizeCanvas());
+          window.addEventListener("resize", () => this.resizeCanvas());
         },
 
         resizeCanvas() {
@@ -198,9 +213,19 @@
 
           for (let i = 0; i < Params.numRays; i++) {
             const angle = (i / Params.numRays) * Math.PI * 2 - Math.PI / 2;
-            const x = this.centerX + Math.cos(angle) * (Params.radius + 15);
-            const y = this.centerY + Math.sin(angle) * (Params.radius + 15);
-            this.ctx.fillText(Params.distributedNotes[i].toString(), x, y);
+            const noteX = this.centerX + Math.cos(angle) * (Params.radius + 15);
+            const noteY = this.centerY + Math.sin(angle) * (Params.radius + 15);
+            const speedX =
+              this.centerX + Math.cos(angle) * (Params.radius + 30);
+            const speedY =
+              this.centerY + Math.sin(angle) * (Params.radius + 30);
+
+            this.ctx.fillText(
+              Params.distributedNotes[i].toString(),
+              noteX,
+              noteY
+            );
+            this.ctx.fillText(App.circles[i].speed.toFixed(2), speedX, speedY);
           }
         },
 
@@ -209,7 +234,6 @@
         },
       };
 
-      // Modulo audio
       const Audio = {
         synth: null,
         reverb: null,
@@ -255,9 +279,9 @@
       class Circle {
         constructor(index) {
           this.angle = (index / Params.numRays) * Math.PI * 2 - Math.PI / 2;
-          this.distance = Params.radius;
-          this.speed = Math.random() * 1 + 0.5;
-          this.direction = -1;
+          this.distance = 0; // Partono dal centro
+          this.speed = Params.baseSpeed + index * Params.speedIncrement;
+          this.direction = 1; // Direzione verso l'esterno
           this.borderGlow = 0;
           this.index = index;
         }
@@ -293,7 +317,6 @@
         }
       }
 
-      // Modulo principale dell'applicazione
       const App = {
         circles: [],
         lastFrameTime: 0,
@@ -315,20 +338,27 @@
         },
 
         setupEventListeners() {
-          document.getElementById("startButton").addEventListener("click", async () => {
-            await Tone.start();
-            document.getElementById("startButton").style.display = "none";
-            this.animate();
-          });
+          document
+            .getElementById("startButton")
+            .addEventListener("click", async () => {
+              await Tone.start();
+              document.getElementById("startButton").style.display = "none";
+              this.animate();
+            });
 
-          document.getElementById("debugButton").addEventListener("click", () => {
-            Params.showDebug = !Params.showDebug;
-          });
+          document
+            .getElementById("debugButton")
+            .addEventListener("click", () => {
+              Params.showDebug = !Params.showDebug;
+            });
 
-          document.getElementById("toggleScalesButton").addEventListener("click", () => {
-            const scalePanel = document.getElementById("scalePanel");
-            scalePanel.style.display = scalePanel.style.display === "none" ? "block" : "none";
-          });
+          document
+            .getElementById("toggleScalesButton")
+            .addEventListener("click", () => {
+              const scalePanel = document.getElementById("scalePanel");
+              scalePanel.style.display =
+                scalePanel.style.display === "none" ? "block" : "none";
+            });
 
           const scalePanel = document.getElementById("scalePanel");
           for (let scale in Params.scales) {
@@ -337,6 +367,16 @@
             button.addEventListener("click", () => this.changeScale(scale));
             scalePanel.appendChild(button);
           }
+
+          const modeButton = document.createElement("button");
+          modeButton.textContent = "Toggle Mode (Wave/Random)";
+          modeButton.addEventListener("click", () => this.toggleMode());
+          document.getElementById("controls").appendChild(modeButton);
+        },
+
+        toggleMode() {
+          Params.mode = Params.mode === "wave" ? "random" : "wave";
+          console.log(`Switched to ${Params.mode} mode`);
         },
 
         changeScale(scaleName) {
