@@ -114,10 +114,13 @@
         for (let i = 0; i < totalNotes; i++) {
           let repetitions = notesPerSlot + (remainingSlots > 0 ? 1 : 0);
           for (let j = 0; j < repetitions; j++) {
-            Params.distributedNotes.push(i + 1); // Usiamo numeri da 1 a totalNotes per il debug
+            Params.distributedNotes.push(i + 1);
           }
           if (remainingSlots > 0) remainingSlots--;
         }
+
+        // Invertiamo l'array per ottenere la distribuzione antioraria
+        Params.distributedNotes.reverse();
       }
 
       // Modulo grafico
@@ -173,7 +176,8 @@
           this.ctx.textBaseline = "middle";
 
           for (let i = 0; i < Params.numRays; i++) {
-            const angle = (i / Params.numRays) * Math.PI * 2;
+            // Modifichiamo l'angolo per iniziare dalle ore 12 e procedere in senso antiorario
+            const angle = (i / Params.numRays) * Math.PI * 2 - Math.PI / 2;
             const x = this.centerX + Math.cos(angle) * (Params.radius + 15);
             const y = this.centerY + Math.sin(angle) * (Params.radius + 15);
             this.ctx.fillText(Params.distributedNotes[i].toString(), x, y);
@@ -230,7 +234,8 @@
 
       class Circle {
         constructor(index) {
-          this.angle = (index / Params.numRays) * Math.PI * 2;
+          // Modifichiamo l'angolo per iniziare dalle ore 12 e procedere in senso antiorario
+          this.angle = (index / Params.numRays) * Math.PI * 2 - Math.PI / 2;
           this.distance = Params.radius;
           this.speed = Math.random() * 1 + 0.5;
           this.direction = -1;
