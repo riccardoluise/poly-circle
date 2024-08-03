@@ -14,30 +14,45 @@
         align-items: center;
         height: 100vh;
         font-family: Arial, sans-serif;
+        color: #fff;
       }
       canvas {
-        border: 1px solid #333;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
       }
       #controls {
         position: absolute;
-        top: 20px;
-        left: 20px;
+        top: 10px;
+        left: 10px;
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        max-width: 80vw;
+        flex-direction: column;
+        gap: 5px;
       }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
-        background-color: #333;
-        color: white;
-        border: none;
+      #scalePanel {
+        display: none;
+        max-height: 70vh;
+        overflow-y: auto;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 10px;
         border-radius: 5px;
       }
+      button {
+        padding: 5px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: none;
+        border-radius: 3px;
+        transition: background-color 0.3s;
+      }
       button:hover {
-        background-color: #555;
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      #toggleScalesButton {
+        margin-top: 10px;
       }
     </style>
   </head>
@@ -46,6 +61,8 @@
     <div id="controls">
       <button id="startButton">Avvia Audio</button>
       <button id="debugButton">Toggle Debug</button>
+      <button id="toggleScalesButton">Toggle Scale</button>
+      <div id="scalePanel"></div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -89,11 +106,7 @@
       // Funzione per generare note con ottave
       function generateNotesWithOctaves(scale, baseOctave, numOctaves) {
         let notes = [];
-        for (
-          let octave = baseOctave;
-          octave < baseOctave + numOctaves;
-          octave++
-        ) {
+        for (let octave = baseOctave; octave < baseOctave + numOctaves; octave++) {
           notes = notes.concat(scale.map((note) => `${note}${octave}`));
         }
         return notes;
@@ -135,11 +148,17 @@
         init(canvasId) {
           this.canvas = document.getElementById(canvasId);
           this.ctx = this.canvas.getContext("2d");
-          this.canvas.width = window.innerWidth;
-          this.canvas.height = window.innerHeight;
-          this.centerX = this.canvas.width / 2;
-          this.centerY = this.canvas.height / 2;
-          Params.radius = Math.min(this.canvas.width, this.canvas.height) * 0.4;
+          this.resizeCanvas();
+          window.addEventListener('resize', () => this.resizeCanvas());
+        },
+
+        resizeCanvas() {
+          const size = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+          this.canvas.width = size;
+          this.canvas.height = size;
+          this.centerX = size / 2;
+          this.centerY = size / 2;
+          Params.radius = size * 0.45;
         },
 
         drawCircumference() {
@@ -178,7 +197,6 @@
           this.ctx.textBaseline = "middle";
 
           for (let i = 0; i < Params.numRays; i++) {
-            // Modifichiamo l'angolo per iniziare dalle ore 12 e procedere in senso antiorario
             const angle = (i / Params.numRays) * Math.PI * 2 - Math.PI / 2;
             const x = this.centerX + Math.cos(angle) * (Params.radius + 15);
             const y = this.centerY + Math.sin(angle) * (Params.radius + 15);
@@ -236,7 +254,6 @@
 
       class Circle {
         constructor(index) {
-          // Modifichiamo l'angolo per iniziare dalle ore 12 e procedere in senso antiorario
           this.angle = (index / Params.numRays) * Math.PI * 2 - Math.PI / 2;
           this.distance = Params.radius;
           this.speed = Math.random() * 1 + 0.5;
@@ -298,27 +315,27 @@
         },
 
         setupEventListeners() {
-          document
-            .getElementById("startButton")
-            .addEventListener("click", async () => {
-              await Tone.start();
-              document.getElementById("startButton").style.display = "none";
-              this.animate();
-            });
+          document.getElementById("startButton").addEventListener("click", async () => {
+            await Tone.start();
+            document.getElementById("startButton").style.display = "none";
+            this.animate();
+          });
 
-          document
-            .getElementById("debugButton")
-            .addEventListener("click", () => {
-              Params.showDebug = !Params.showDebug;
-            });
+          document.getElementById("debugButton").addEventListener("click", () => {
+            Params.showDebug = !Params.showDebug;
+          });
 
-          // Generare dinamicamente i pulsanti per le scale
-          const controlsDiv = document.getElementById("controls");
+          document.getElementById("toggleScalesButton").addEventListener("click", () => {
+            const scalePanel = document.getElementById("scalePanel");
+            scalePanel.style.display = scalePanel.style.display === "none" ? "block" : "none";
+          });
+
+          const scalePanel = document.getElementById("scalePanel");
           for (let scale in Params.scales) {
             const button = document.createElement("button");
             button.textContent = scale.charAt(0).toUpperCase() + scale.slice(1);
             button.addEventListener("click", () => this.changeScale(scale));
-            controlsDiv.appendChild(button);
+            scalePanel.appendChild(button);
           }
         },
 
